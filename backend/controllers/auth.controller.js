@@ -54,7 +54,31 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    console.log("Login");
+   try{ 
+    const { email, password } = req.body;   
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(400).json({ message: "Invalid email" });
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        return res.status(400).json({ message: "Invalid password" });
+    }
+    const { accessToken, refreshToken } = generateToken(user._id);  
+
+    await storeRefreshToken(user._id, refreshToken);    
+    setCookies(res, accessToken, refreshToken);
+    res.json({ user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+    }, message: "Logged in successfully" });
+
+   }catch(error){
+       console.log("Error in login controller", error.message);
+       res.status(500).json({ message: "Server error", error: error.message });
+   }
 }
 
 export const logout = async (req, res) => {
