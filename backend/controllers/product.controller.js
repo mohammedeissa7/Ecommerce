@@ -81,3 +81,22 @@ export const deleteProduct = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+export const getRecommendedProducts = async (req, res) => {
+    try {
+        const recommendedProducts = await Product.aggregate([{ $sample: { size: 5 } },
+            {
+                $project: {
+                    _id:1,
+                    name: 1,
+                    description: 1,
+                    price: 1,
+                    image: 1,
+                }
+            }
+        ]);
+        res.status(200).json(recommendedProducts);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}

@@ -10,4 +10,5 @@ productRouter.get('/', protectRoute,adminRoute, getAllProducts);
 productRouter.get('/featured', getFeaturedProducts);
 productRouter.post('/', protectRoute, adminRoute, createProduct);
 productRouter.delete('/:id', protectRoute, adminRoute, deleteProduct);
+productRouter.get('/recommended', getRecommendedProducts);
 export default productRouter;
