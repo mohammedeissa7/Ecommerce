@@ -5,6 +5,7 @@ import authRouter from './routes/auth.route.js';
 import cookieParser from 'cookie-parser';
 import productRouter from './routes/product.route.js';
 import cartRouter from './routes/cart.route.js';
+import paymentRouter from './routes/payment.route.js';
 
 
 dotenv.config();
@@ -16,6 +17,9 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter);
 app.use('/api/cart', cartRouter);
+app.use('/api/payment', paymentRouter);
+
+
 app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is running on port http://localhost:${PORT}`);
