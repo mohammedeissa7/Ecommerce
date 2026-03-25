@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import productRouter from './routes/product.route.js';
 import cartRouter from './routes/cart.route.js';
 import paymentRouter from './routes/payment.route.js';
+import analyticsRouter from './routes/analytics.route.js';
 
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter);
 app.use('/api/cart', cartRouter);
 app.use('/api/payment', paymentRouter);
+app.use('/api/analytics', analyticsRouter);
 
 
 app.listen(PORT, async () => {
