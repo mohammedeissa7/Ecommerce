@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, User, X, Menu} from "lucide-react";
+import { ShoppingBag, User, X, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const NAV_LINKS = [
   { label: "Collections", href: "#" },
@@ -31,7 +32,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const user = true;
+  const { user } = useAuthStore();
 
   return (
     <>
@@ -199,14 +200,16 @@ export default function Navbar() {
 
                     {/* Mobile auth */}
                     <div className="mt-auto px-6 pb-8 flex flex-col gap-3">
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-none border-stone-900 text-stone-900 text-[11px] tracking-[0.2em] uppercase h-11 hover:bg-stone-900 hover:text-white transition-colors"
-                      >
-                        Sign In
-                      </Button>
+                      <Link to="/signin">
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-none border-stone-900 text-stone-900 text-[11px] tracking-[0.2em] uppercase h-11 hover:bg-stone-900 hover:text-white transition-colors"
+                        >
+                          Sign In
+                        </Button>
+                      </Link>
                       <Button className="w-full rounded-none bg-stone-900 text-white text-[11px] tracking-[0.2em] uppercase h-11 hover:bg-stone-700 transition-colors">
-                        Create Account
+                        <Link to="/signup">Create Account</Link>
                       </Button>
                     </div>
                   </div>
