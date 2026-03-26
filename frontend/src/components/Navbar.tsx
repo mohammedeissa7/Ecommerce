@@ -105,21 +105,29 @@ export default function Navbar() {
                   <DropdownMenuSeparator className="bg-stone-100" />
                   {user ? (
                     <>
-                      <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
-                        <Link to="/profile">my profile</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
-                        <Link to="/signout">signout</Link>
-                      </DropdownMenuItem>
+                      <Link to="/profile">
+                        <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
+                          my profile
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to="/signout">
+                        <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
+                          signout
+                        </DropdownMenuItem>
+                      </Link>
                     </>
                   ) : (
                     <>
-                      <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
-                        <Link to="/signin">Sign In</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
-                        <Link to="/signup">Create Account</Link>
-                      </DropdownMenuItem>
+                      <Link to="/signin">
+                        <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
+                          Sign In
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to="/signup">
+                        <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
+                          Create Account
+                        </DropdownMenuItem>
+                      </Link>
                     </>
                   )}
                   <DropdownMenuSeparator className="bg-stone-100" />
