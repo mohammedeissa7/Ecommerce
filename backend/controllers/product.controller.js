@@ -4,9 +4,27 @@ import Product from './../models/product.model.js';
 
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find();
-        res.status(200).json(products);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit) || 12); // cap at 50
+        const skip = (page - 1) * limit;
 
+        
+        const [products, totalCount] = await Promise.all([
+            Product.find().skip(skip).limit(limit),
+            Product.countDocuments(),
+        ]);
+
+        res.status(200).json({
+            products,
+            pagination: {
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page,
+                limit,
+                hasNextPage: page < Math.ceil(totalCount / limit),
+                hasPrevPage: page > 1,
+            },
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -104,8 +122,26 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductByCategory = async (req, res) => {
     try {
         const { category } = req.params;
-        const products = await Product.find({ category });
-        res.status(200).json(products);
+                const page  = Math.max(1, parseInt(req.query.page)  || 1);
+                const limit = Math.min(50, parseInt(req.query.limit) || 12);
+                const skip  = (page - 1) * limit;
+        
+                const [products, totalCount] = await Promise.all([
+                    Product.find({ category }).skip(skip).limit(limit),
+                    Product.countDocuments({ category }),
+                ]);
+        
+                res.status(200).json({
+                    products,
+                    pagination: {
+                        totalCount,
+                        totalPages : Math.ceil(totalCount / limit),
+                        currentPage: page,
+                        limit,
+                        hasNextPage: page < Math.ceil(totalCount / limit),
+                        hasPrevPage: page > 1,
+                    },
+                });
     }
     catch (error) {
         res.status(500).json({ message: error.message });
@@ -132,12 +168,12 @@ export const toggleFeaturedProduct = async (req, res) => {
 }
 
 
- async function updateFeaturedProductsCache () {
-    try { 
+async function updateFeaturedProductsCache() {
+    try {
         const featuredProducts = await Product.find({ isFeatured: true }).lean();
         await redis.set('featuredProducts', JSON.stringify(featuredProducts));
     }
     catch (error) {
         console.error('Error updating featured products cache:', error);
-     }
+    }
 }
