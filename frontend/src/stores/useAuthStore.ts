@@ -1,6 +1,6 @@
-import axios from "../lib/axios";
 import { create } from "zustand";
 import toast from "react-hot-toast";
+import  axiosInstance  from '@/lib/axios';
 
 export interface User {
   _id: string;
@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUp: async (name, email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await axios.post("/auth/signup", {
+      const { data } = await axiosInstance.post("/auth/signup", {
         name,
         email,
         password,
@@ -43,14 +43,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: message, isLoading: false });
       toast.error(message);
 
-      throw new Error(message);
     }
   },
 
   signIn: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await axios.post("/auth/login", { email, password });
+      const { data } = await axiosInstance.post("/auth/login", { email, password });
       set({ user: data.user, isAuthenticated: true, isLoading: false });
       toast.success("Login successful! Welcome back, " + data.user.name);
     } catch (err: any) {
@@ -58,19 +57,21 @@ export const useAuthStore = create<AuthState>((set) => ({
         err.response?.data?.message ?? "Login failed. Please try again.";
       set({ error: message, isLoading: false });
       toast.error(message);
-      throw new Error(message);
+    }finally {
+      set({ isLoading: false });
     }
   },
 
   signOut: async () => {
     try {
-      await axios.post("/auth/logout");
+      await axiosInstance.post("/auth/logout");
       set({ user: null, isAuthenticated: false, error: null });
       toast.success("Logout successful. See you next time!");
     } catch {
       toast.error("Logout failed. Please try again.");
     } finally {
       set({ user: null, isAuthenticated: false, error: null });
+      set({ isLoading: false });
 
     }
   },

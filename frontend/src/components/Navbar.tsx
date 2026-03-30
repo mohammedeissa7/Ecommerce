@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 const NAV_LINKS = [
-  { label: "Collections", href: "#" },
+  { label: "Collections", href: "/products" },
   { label: "New Arrivals", href: "#" },
   { label: "Sale", href: "#" },
   { label: "About", href: "#" },
@@ -33,6 +33,7 @@ export default function Navbar() {
   }, []);
 
   const { user } = useAuthStore();
+  
 
   return (
     <>

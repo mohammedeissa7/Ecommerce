@@ -6,11 +6,11 @@ import { createProduct, deleteProduct, getAllProducts, getFeaturedProducts, getR
 const productRouter = express.Router();
 
 
-productRouter.get('/', protectRoute,adminRoute, getAllProducts);
+productRouter.get('/', protectRoute, getAllProducts);
 productRouter.get('/featured', getFeaturedProducts);
 productRouter.get('/recommended', getRecommendedProducts);
 productRouter.get('/category/:category', getProductByCategory);
-productRouter.get('/:id', protectRoute, adminRoute, toggleFeaturedProduct);
+productRouter.get('/:id', protectRoute, toggleFeaturedProduct);
 productRouter.post('/', protectRoute, adminRoute, createProduct);
 productRouter.delete('/:id', protectRoute, adminRoute, deleteProduct);
 
