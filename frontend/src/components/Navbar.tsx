@@ -12,6 +12,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useCartStore } from "@/stores/useCartStore";
 
 const NAV_LINKS = [
   { label: "Collections", href: "/products" },
@@ -20,11 +21,13 @@ const NAV_LINKS = [
   { label: "About", href: "#" },
 ];
 
-const CART_COUNT = 0; // replace with your cart state
+
 
 export default function Navbar() {
+  const { totalItems, openDrawer, fetchCart } = useCartStore();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, isAuthenticated, signOut } = useAuthStore();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -32,8 +35,13 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { user } = useAuthStore();
   
+  
+  
+  useEffect(() => {
+    if (isAuthenticated) fetchCart();
+  }, [isAuthenticated]);
+
 
   return (
     <>
@@ -56,20 +64,20 @@ export default function Navbar() {
             {/* Left — Nav links (desktop) */}
             <nav className="hidden lg:flex items-center gap-8">
               {NAV_LINKS.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="text-[11px] tracking-[0.15em] uppercase text-stone-500 hover:text-stone-900 transition-colors duration-200 font-medium relative group"
                 >
                   {link.label}
                   <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-stone-900 transition-all duration-300 group-hover:w-full" />
-                </a>
+                </Link>
               ))}
             </nav>
 
             {/* Center — Logo */}
-            <a
-              href="/"
+            <Link
+              to="/"
               className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center leading-none select-none"
             >
               <span
@@ -78,7 +86,7 @@ export default function Navbar() {
               >
                 <Link to={"/"}>Eissa</Link>
               </span>
-            </a>
+            </Link>
 
             {/* Right — Actions */}
             <div className="flex items-center gap-1 lg:gap-2 ml-auto lg:ml-0">
@@ -86,6 +94,7 @@ export default function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
+
                     variant="ghost"
                     size="icon"
                     className="w-9 h-9 text-stone-500 hover:text-stone-900 hover:bg-stone-50 rounded-full"
@@ -111,7 +120,7 @@ export default function Navbar() {
                           my profile
                         </DropdownMenuItem>
                       </Link>
-                      <Link to="/signout">
+                      <Link to="/" onClick={() => { signOut(); }}>
                         <DropdownMenuItem className="text-[12px] tracking-wide text-stone-600 hover:text-stone-900 cursor-pointer py-2.5">
                           signout
                         </DropdownMenuItem>
@@ -143,6 +152,7 @@ export default function Navbar() {
 
               {/* Cart */}
               <Button
+              onClick={openDrawer}
                 variant="ghost"
                 size="icon"
                 className="relative w-9 h-9 text-stone-500 hover:text-stone-900 hover:bg-stone-50 rounded-full"
@@ -151,9 +161,9 @@ export default function Navbar() {
                 <Link to="/cart">
                   <ShoppingBag size={18} strokeWidth={1.5} />
                 </Link>
-                {CART_COUNT > 0 && (
+                {totalItems() > 0 && (
                   <span className="absolute top-1 right-1 w-[14px] h-[14px] rounded-full bg-stone-900 text-white text-[8px] flex items-center justify-center font-medium leading-none">
-                    {CART_COUNT}
+                    {totalItems()}
                   </span>
                 )}
               </Button>
@@ -196,14 +206,14 @@ export default function Navbar() {
                     {/* Mobile links */}
                     <nav className="flex flex-col px-6 py-6 gap-1">
                       {NAV_LINKS.map((link) => (
-                        <a
+                        <Link
                           key={link.label}
-                          href={link.href}
+                          to={link.href}
                           onClick={() => setMobileOpen(false)}
                           className="text-[12px] tracking-[0.2em] uppercase text-stone-500 hover:text-stone-900 transition-colors py-3 border-b border-stone-50 font-medium"
                         >
                           {link.label}
-                        </a>
+                        </Link>
                       ))}
                     </nav>
 

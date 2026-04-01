@@ -3,6 +3,7 @@ import { useSearchParams, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useProductStore } from "@/stores/useProductStore";
 import PaginationBar from "@/components/PaginationBar";
+import AddToCartButton from "@/components/AddToCartButton";
 
 const LIMIT = 12; 
 
@@ -157,6 +158,7 @@ function ProductGrid({
             <p className="text-[13px] tracking-wide text-stone-600">
               ${product.price.toFixed(2)}
             </p>
+            <AddToCartButton productId={product._id} variant="icon" />
           </div>
         </div>
       ))}

@@ -5,12 +5,14 @@ import SignInPage from "./pages/SignInPage.tsx";
 import SignUpPage from "./pages/SignUpPage.tsx";
 import Footer from "./components/Footer.tsx";
 import { AllProductsPage, CategoryPage } from "./pages/ProductsPage.tsx";
+import CartDrawer from "./components/CartDrawer.tsx";
 
 function App() {
 
   return (
     <>
       <Navbar />
+      <CartDrawer/>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/signin" element={<SignInPage />} />

@@ -57,8 +57,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         err.response?.data?.message ?? "Login failed. Please try again.";
       set({ error: message, isLoading: false });
       toast.error(message);
-    }finally {
-      set({ isLoading: false });
     }
   },
 
