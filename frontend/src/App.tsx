@@ -6,6 +6,7 @@ import SignUpPage from "./pages/SignUpPage.tsx";
 import Footer from "./components/Footer.tsx";
 import { AllProductsPage, CategoryPage } from "./pages/ProductsPage.tsx";
 import CartDrawer from "./components/CartDrawer.tsx";
+import ProductDetailPage from "./pages/ProductDetailPage.tsx";
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/products" element={<AllProductsPage />} />
         <Route path="/products/category/:category" element={<CategoryPage />} />
+        <Route path="/products/:id" element={<ProductDetailPage />} />
       </Routes>
       <Footer/>
     </>

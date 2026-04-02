@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useProductStore } from "@/stores/useProductStore";
 import PaginationBar from "@/components/PaginationBar";
@@ -134,15 +134,17 @@ function ProductGrid({
         <div key={product._id} className="group space-y-3">
           {/* Image */}
           <div className="relative overflow-hidden bg-stone-100 aspect-[3/4]">
-            <img
-              src={
-                product.image ||
-                "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80"
-              }
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              loading="lazy"
-            />
+            <Link to={`/products/${product._id}`}>
+              <img
+                src={
+                  product.image ||
+                  "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80"
+                }
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+            </Link>
           </div>
           {/* Info */}
           <div className="space-y-1">

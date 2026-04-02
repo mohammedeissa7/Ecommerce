@@ -186,7 +186,7 @@ export default function HomePage() {
         {/* Background image */}
         <img
           src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1800&q=85"
-          alt="Maison Paris hero"
+          alt="Eissa dev hero"
           className="absolute inset-0 w-full h-full object-cover object-top"
           style={{
             transform: heroLoaded ? "scale(1)" : "scale(1.06)",
@@ -532,7 +532,7 @@ export default function HomePage() {
               "Less, but better."
             </h2>
             <p className="text-white/40 text-[13px] tracking-wide leading-relaxed max-w-md mx-auto mt-4">
-              Every Maison piece is designed to outlast seasons — chosen slowly,
+              Every Eissa piece is designed to outlast seasons — chosen slowly,
               worn for years, cherished forever.
             </p>
             <Link
