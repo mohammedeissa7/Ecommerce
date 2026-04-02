@@ -7,13 +7,13 @@ import Footer from "./components/Footer.tsx";
 import { AllProductsPage, CategoryPage } from "./pages/ProductsPage.tsx";
 import CartDrawer from "./components/CartDrawer.tsx";
 import ProductDetailPage from "./pages/ProductDetailPage.tsx";
+import CheckoutPage from "./pages/CheckoutPage.tsx";
 
 function App() {
-
   return (
     <>
       <Navbar />
-      <CartDrawer/>
+      <CartDrawer />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/signin" element={<SignInPage />} />
@@ -21,10 +21,11 @@ function App() {
         <Route path="/products" element={<AllProductsPage />} />
         <Route path="/products/category/:category" element={<CategoryPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
       </Routes>
-      <Footer/>
+      <Footer />
     </>
   );
 }
 
-export default App
+export default App;
