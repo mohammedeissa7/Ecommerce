@@ -6,12 +6,12 @@ import {
   Trash2,
   ShoppingBag,
   ArrowRight,
-  Loader2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "@/stores/useCartStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CartDrawerSkeleton } from "./skeletons/CartDrawerSkeleton";
 
 export default function CartDrawer() {
   const {
@@ -107,14 +107,7 @@ export default function CartDrawer() {
         {/* Items  */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-0">
           {isLoading && items.length === 0 ? (
-            // Initial loading state
-            <div className="flex justify-center items-center h-full">
-              <Loader2
-                size={20}
-                strokeWidth={1.5}
-                className="animate-spin text-stone-300"
-              />
-            </div>
+            <CartDrawerSkeleton />
           ) : items.length === 0 ? (
             // Empty cart
             <div className="flex flex-col items-center justify-center h-full gap-4 py-20">

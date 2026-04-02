@@ -14,6 +14,7 @@ import axiosInstance from "@/lib/axios";
 import AddToCartButton from "@/components/AddToCartButton";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/stores/useProductStore";
+import { ProductDetailSkeleton } from "@/components/skeletons/ProductDetailSkeleton";
 
 
 const FONT_SERIF = "'Cormorant Garamond', Georgia, serif";
@@ -122,18 +123,7 @@ export default function ProductDetailPage() {
   }, []);
 
  
-  if (isLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2
-          size={22}
-          strokeWidth={1.5}
-          className="animate-spin text-stone-300"
-        />
-      </div>
-    );
-  }
-
+  if (isLoading) return <ProductDetailSkeleton />;
   
   if (error || !product) {
     return (

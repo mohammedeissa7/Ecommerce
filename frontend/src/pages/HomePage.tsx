@@ -4,9 +4,9 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { useProductStore } from "@/stores/useProductStore";
 import AddToCartButton from "@/components/AddToCartButton";
 import { cn } from "@/lib/utils";
+import { HomePageSkeleton } from "@/components/skeletons/HomePageSkeleton";
 
 const S = "'Cormorant Garamond', Georgia, serif";
-
 
 const CATEGORIES = [
   {
@@ -73,7 +73,7 @@ const EDITORIAL_ITEMS = [
   },
 ];
 
-// ─── Fade-in hook ──────────────────────────────────────────────────────────────
+// Fade-in hook
 function useFadeIn(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -95,7 +95,7 @@ function useFadeIn(threshold = 0.15) {
   return { ref, visible };
 }
 
-// ─── Section wrapper with reveal ──────────────────────────────────────────────
+// Section wrapper with reveal
 function Reveal({
   children,
   className,
@@ -121,7 +121,7 @@ function Reveal({
   );
 }
 
-// ─── Featured product card ────────────────────────────────────────────────────
+//  Featured product card
 function FeaturedCard({ product, index }: { product: any; index: number }) {
   return (
     <Reveal delay={index * 80}>
@@ -168,17 +168,17 @@ function FeaturedCard({ product, index }: { product: any; index: number }) {
   );
 }
 
-
 export default function HomePage() {
   const { featuredProducts, fetchFeaturedProducts } = useProductStore();
   const [heroLoaded, setHeroLoaded] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    fetchFeaturedProducts();
+    fetchFeaturedProducts().then(() => setReady(true));
     const t = setTimeout(() => setHeroLoaded(true), 100);
     return () => clearTimeout(t);
   }, []);
-
+  if (!ready) return <HomePageSkeleton />;
   return (
     <main className="font-['Jost',sans-serif] overflow-hidden">
       {/* HERO */}
@@ -296,9 +296,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          MARQUEE
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* MARQUEE */}
       <div className="bg-stone-900 py-3 overflow-hidden border-t border-white/5">
         <div
           className="flex gap-8 whitespace-nowrap"
@@ -324,9 +322,7 @@ export default function HomePage() {
         `}</style>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          CATEGORIES
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* CATEGORIES */}
       <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
         <Reveal className="flex items-end justify-between mb-10">
           <div className="space-y-1">
@@ -394,9 +390,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          FEATURED PRODUCTS
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* FEATURED PRODUCTS */}
       {featuredProducts.length > 0 && (
         <section className="bg-stone-50 py-20 lg:py-24">
           <div className="max-w-7xl mx-auto px-6 lg:px-10">
@@ -448,9 +442,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          EDITORIAL — SPLIT PANELS
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* EDITORIAL — SPLIT PANELS */}
       <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="space-y-24">
           {EDITORIAL_ITEMS.map((item, i) => (
@@ -511,9 +503,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          BRAND BANNER — full-bleed dark
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* BRAND BANNER — full-bleed dark */}
       <section className="relative overflow-hidden bg-stone-900 py-24 lg:py-32">
         <img
           src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80"
@@ -550,9 +540,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          BOTTOM MARQUEE — light
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* BOTTOM MARQUEE — light */}
       <div className="py-10 border-t border-stone-100 overflow-hidden">
         <div
           className="flex gap-12 whitespace-nowrap"

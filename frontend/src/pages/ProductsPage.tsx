@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { useProductStore } from "@/stores/useProductStore";
 import PaginationBar from "@/components/PaginationBar";
 import AddToCartButton from "@/components/AddToCartButton";
+import { ProductGridSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 
 const LIMIT = 12; 
 
@@ -92,17 +92,7 @@ function ProductGrid({
   isLoading: boolean;
   error: string | null;
 }) {
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-32">
-        <Loader2
-          size={20}
-          strokeWidth={1.5}
-          className="animate-spin text-stone-400"
-        />
-      </div>
-    );
-  }
+  if (isLoading) return <ProductGridSkeleton count={12} />;
 
   if (error) {
     return (

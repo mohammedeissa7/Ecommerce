@@ -158,9 +158,9 @@ export default function Navbar() {
                 className="relative w-9 h-9 text-stone-500 hover:text-stone-900 hover:bg-stone-50 rounded-full"
                 aria-label="Cart"
               >
-                <Link to="/cart">
+                
                   <ShoppingBag size={18} strokeWidth={1.5} />
-                </Link>
+                
                 {totalItems() > 0 && (
                   <span className="absolute top-1 right-1 w-[14px] h-[14px] rounded-full bg-stone-900 text-white text-[8px] flex items-center justify-center font-medium leading-none">
                     {totalItems()}
