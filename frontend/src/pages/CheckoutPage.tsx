@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowRight, Tag, X, Loader2, ShieldCheck, Lock } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
 import { useCartStore } from "@/stores/useCartStore";
 import { usePaymentStore } from "@/stores/usePaymentStore";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const FONT_SERIF = "'Cormorant Garamond', Georgia, serif";
 
@@ -51,7 +49,7 @@ export default function CheckoutPage() {
   const subtotal = totalPrice();
   const grandTotal = subtotal + shipping;
 
-  // Apply coupon
+
   const applyCoupon = () => {
     if (!couponInput.trim()) return;
     setCouponCode(couponInput.trim().toUpperCase());
@@ -63,9 +61,6 @@ export default function CheckoutPage() {
   };
 
   const handleCheckout = async () => {
-    const stripe = await stripePromise;
-    if (!stripe) return;
-
     const payload = {
       products: items.map((item) => ({
         _id: item._id,
@@ -80,12 +75,8 @@ export default function CheckoutPage() {
     const sessionId = await createCheckoutSession(payload);
     if (!sessionId) return;
 
-    const { error: stripeError } = await stripe.redirectToCheckout({
-      sessionId,
-    });
-    if (stripeError) {
-      console.error("Stripe redirect error:", stripeError.message);
-    }
+    window.location.href = `${sessionId}`;
+    
   };
 
   return (
