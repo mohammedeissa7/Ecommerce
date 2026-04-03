@@ -8,6 +8,8 @@ import { AllProductsPage, CategoryPage } from "./pages/ProductsPage.tsx";
 import CartDrawer from "./components/CartDrawer.tsx";
 import ProductDetailPage from "./pages/ProductDetailPage.tsx";
 import CheckoutPage from "./pages/CheckoutPage.tsx";
+import PurchaseSuccessPage from "./pages/PurchaseSuccessPage.tsx";
+import PurchaseCancelPage from "./pages/PurchaseCancelPage.tsx";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/products/category/:category" element={<CategoryPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/purchase-success" element={<PurchaseSuccessPage />} />
+        <Route path="/purchase-cancel" element={<PurchaseCancelPage />} />
       </Routes>
       <Footer />
     </>
