@@ -1,0 +1,121 @@
+name: Eissa's E-commerce App
+
+services:
+  frontend:
+    build:
+      context: ./frontend          
+      dockerfile: dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost/api}
+
+    container_name: Eissa_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"                    # exposed to host
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - Eissa_net
+
+  # Backend Node.js/Express 
+  backend:
+    build:
+      context: ./backend           # path to your Express project root
+      dockerfile: dockerfile
+    container_name: Eissa_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"                # expose for direct API access / debugging
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+
+      # MongoDB — uses the mongo service name as hostname
+      MONGO_URI: mongodb://mongo:27017/${MONGO_DB_NAME:-Eissa}
+
+      # Redis — uses the redis service name as hostname
+      REDIS_URL: redis://redis:6379
+
+      # Auth
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+
+      # Frontend origin (used in Stripe success/cancel URLs)
+      CLIENT_URL: ${CLIENT_URL:-http://localhost}
+
+      # Cloudinary (for product images)
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - Eissa_net
+
+  #  MongoDB 
+  mongo:
+    image: mongo:7-jammy
+    container_name: Eissa_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"              # expose for MongoDB Compass / debugging
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-Eissa}
+    volumes:
+      - mongo_data:/data/db        # persist database across container restarts
+      - mongo_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - Eissa_net
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: Eissa_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"                # expose for RedisInsight / debugging
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data           # persist Redis AOF/RDB across restarts
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - Eissa_net
+
+# Named volumes 
+volumes:
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+  redis_data:
+    driver: local
+
+#  Internal network 
+networks:
+  Eissa_net:
+    driver: bridge
