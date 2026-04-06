@@ -45,3 +45,27 @@ module "vpc" {
   enable_nat_gateway   = var.enable_nat_gateway
   single_nat_gateway   = var.single_nat_gateway   # true = one NAT (cheaper), false = one per AZ (HA)
 }
+
+# TLS Certificate Management using ACM module
+
+module "acm" {
+  source = "./modules/acm"
+
+  providers = { aws = aws.us_east_1 }  
+
+  app_name    = var.app_name
+  domain_name = var.domain_name
+  zone_id     = module.route53.zone_id
+}
+
+# Route 53 DNS module
+
+module "route53" {
+  source = "./modules/route53"
+
+  app_name          = var.app_name
+  domain_name       = var.domain_name
+  cloudfront_domain = module.cloudfront.domain_name
+  alb_dns_name      = module.alb.dns_name
+  alb_zone_id       = module.alb.zone_id
+}
