@@ -109,3 +109,39 @@ module "alb" {
   acm_cert_arn   = module.acm.certificate_arn
   alb_sg_id      = module.vpc.alb_sg_id
 }
+
+# Elastic Container Service module
+
+module "ecs" {
+  source = "./modules/ecs"
+
+  app_name    = var.app_name
+  environment = var.environment
+  aws_region  = var.aws_region
+
+  vpc_id           = module.vpc.vpc_id
+  private_subnets  = module.vpc.private_subnet_ids
+  app_sg_id        = module.vpc.app_sg_id
+
+  frontend_image         = "${module.ecr.frontend_repository_url}:latest"
+  backend_image          = "${module.ecr.backend_repository_url}:latest"
+  task_execution_role_arn = module.iam.ecs_task_execution_role_arn
+  task_role_arn          = module.iam.ecs_task_role_arn
+
+  frontend_target_group_arn = module.alb.frontend_tg_arn
+  backend_target_group_arn  = module.alb.backend_tg_arn
+
+  frontend_cpu    = var.frontend_cpu
+  frontend_memory = var.frontend_memory
+  backend_cpu     = var.backend_cpu
+  backend_memory  = var.backend_memory
+  desired_count   = var.desired_count
+
+  mongo_uri_secret_arn    = module.documentdb.connection_secret_arn
+  redis_url_secret_arn    = module.elasticache.connection_secret_arn
+  jwt_secrets_arn         = aws_secretsmanager_secret.jwt.arn
+  stripe_key_arn          = aws_secretsmanager_secret.stripe.arn
+  cloudinary_creds_arn    = aws_secretsmanager_secret.cloudinary.arn
+
+  client_url = "https://${var.domain_name}"
+}
