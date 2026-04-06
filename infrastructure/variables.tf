@@ -67,3 +67,4 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true   # cost-optimised default; set false for production HA
 }
+

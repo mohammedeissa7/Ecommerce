@@ -29,7 +29,9 @@ provider "aws" {
   }
 }
 
-# Network Vpc module
+# Network  module
+
+# VPC and subnets
 
 module "vpc" {
   source = "./modules/vpc"
@@ -69,3 +71,15 @@ module "route53" {
   alb_dns_name      = module.alb.dns_name
   alb_zone_id       = module.alb.zone_id
 }
+
+# Compute module 
+
+# Elastic Container Registry module
+
+module "ecr" {
+  source = "./modules/ecr"
+
+  app_name    = var.app_name
+  environment = var.environment
+}
+
