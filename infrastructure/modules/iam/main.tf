@@ -1,8 +1,4 @@
-# infrastructure/modules/iam/main.tf
-#
 # IAM module: roles and policies for ECS tasks
-# Two IAM concerns:
-#
 # 1. ECS Task Execution Role — what ECS itself needs to START a task:
 #    pull Docker images from ECR, write logs to CloudWatch, fetch secrets.
 #

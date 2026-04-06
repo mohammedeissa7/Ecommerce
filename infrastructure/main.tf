@@ -97,4 +97,15 @@ module "iam" {
   backend_ecr_arn  = module.ecr.backend_repository_arn
 }
 
+# Application Load Balancer module
 
+module "alb" {
+  source = "./modules/alb"
+
+  app_name    = var.app_name
+  environment = var.environment
+  vpc_id      = module.vpc.vpc_id
+  public_subnets = module.vpc.public_subnet_ids
+  acm_cert_arn   = module.acm.certificate_arn
+  alb_sg_id      = module.vpc.alb_sg_id
+}
