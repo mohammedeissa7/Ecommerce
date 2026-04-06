@@ -68,3 +68,34 @@ variable "single_nat_gateway" {
   default     = true   # cost-optimised default; set false for production HA
 }
 
+# Compute variables:
+
+variable "frontend_cpu" {
+  description = "Fargate vCPU units for the frontend task (256 = 0.25 vCPU)"
+  type        = number
+  default     = 256
+}
+
+variable "frontend_memory" {
+  description = "Fargate memory MiB for the frontend task"
+  type        = number
+  default     = 512
+}
+
+variable "backend_cpu" {
+  description = "Fargate vCPU units for the backend task"
+  type        = number
+  default     = 512
+}
+
+variable "backend_memory" {
+  description = "Fargate memory MiB for the backend task"
+  type        = number
+  default     = 1024
+}
+
+variable "desired_count" {
+  description = "Number of ECS tasks per service (min 2 for multi-AZ HA)"
+  type        = number
+  default     = 2
+}

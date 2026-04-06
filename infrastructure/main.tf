@@ -83,3 +83,18 @@ module "ecr" {
   environment = var.environment
 }
 
+# IAM module for roles and policies
+
+module "iam" {
+  source = "./modules/iam"
+
+  app_name       = var.app_name
+  environment    = var.environment
+  aws_region     = var.aws_region
+  aws_account_id = data.aws_caller_identity.current.account_id
+
+  frontend_ecr_arn = module.ecr.frontend_repository_arn
+  backend_ecr_arn  = module.ecr.backend_repository_arn
+}
+
+
