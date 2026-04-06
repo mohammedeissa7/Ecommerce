@@ -1,3 +1,4 @@
+# Terraform variables for Eissa Ecommerce infrastructure
 variable "app_name" {
   description = "Application name, used as a prefix on all resource names"
   type        = string
@@ -22,4 +23,47 @@ variable "aws_region" {
 variable "domain_name" {
   description = "Root domain"
   type        = string
+}
+
+variable "terraform_state_bucket" {
+  description = "S3 bucket for Terraform state storage"
+  type        = string
+}
+
+# Network variables
+
+variable "vpc_cidr" {
+  description = "VPC IPv4 CIDR block"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidrs" {
+  description = "CIDR for each public subnet (one per AZ)"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+}
+
+variable "private_subnet_cidrs" {
+  description = "CIDR for each private subnet — ECS tasks live here"
+  type        = list(string)
+  default     = ["10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24"]
+}
+
+variable "db_subnet_cidrs" {
+  description = "CIDR for isolated DB subnets — DocumentDB and Redis"
+  type        = list(string)
+  default     = ["10.0.20.0/24", "10.0.21.0/24", "10.0.22.0/24"]
+}
+
+variable "enable_nat_gateway" {
+  description = "Create NAT Gateways so private tasks can reach internet (ECR, Secrets)"
+  type        = bool
+  default     = true
+}
+
+variable "single_nat_gateway" {
+  description = "true = one NAT (saves ~$32/mo), false = one per AZ (HA)"
+  type        = bool
+  default     = true   # cost-optimised default; set false for production HA
 }
