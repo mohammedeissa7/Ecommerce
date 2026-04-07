@@ -99,3 +99,23 @@ variable "desired_count" {
   type        = number
   default     = 2
 }
+
+# Database variables:
+
+variable "documentdb_instance_class" {
+  description = "DocumentDB instance class"
+  type        = string
+  default     = "db.t3.medium"   # ~$60/mo per instance
+}
+
+variable "documentdb_instance_count" {
+  description = "Number of DocumentDB instances (1 primary + N replicas)"
+  type        = number
+  default     = 2   # 1 primary + 1 replica for read HA
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache node type"
+  type        = string
+  default     = "cache.t3.micro"   # ~$13/mo, sufficient for token store
+}

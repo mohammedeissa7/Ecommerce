@@ -145,3 +145,22 @@ module "ecs" {
 
   client_url = "https://${var.domain_name}"
 }
+
+# Database modules
+
+# DocumentDB module for MongoDB-compatible database
+
+module "documentdb" {
+  source = "./modules/documentdb"
+
+  app_name    = var.app_name
+  environment = var.environment
+
+  vpc_id       = module.vpc.vpc_id
+  db_subnets   = module.vpc.db_subnet_ids
+  db_sg_id     = module.vpc.db_sg_id
+
+  instance_class     = var.documentdb_instance_class
+  instance_count     = var.documentdb_instance_count
+  deletion_protection = var.environment == "production"
+}
