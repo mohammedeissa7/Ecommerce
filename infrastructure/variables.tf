@@ -119,3 +119,9 @@ variable "redis_node_type" {
   type        = string
   default     = "cache.t3.micro"   # ~$13/mo, sufficient for token store
 }
+
+# Observability variables:
+variable "alert_email" {
+  description = "Email address for critical alerts (CloudWatch Alarms)"
+  type        = string
+}
