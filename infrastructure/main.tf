@@ -164,3 +164,18 @@ module "documentdb" {
   instance_count     = var.documentdb_instance_count
   deletion_protection = var.environment == "production"
 }
+
+# ElastiCache module for Redis in-memory data store
+
+module "elasticache" {
+  source = "./modules/elasticache"
+
+  app_name    = var.app_name
+  environment = var.environment
+
+  vpc_id     = module.vpc.vpc_id
+  db_subnets = module.vpc.db_subnet_ids
+  db_sg_id   = module.vpc.db_sg_id
+
+  node_type = var.redis_node_type
+}
