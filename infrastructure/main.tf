@@ -179,3 +179,18 @@ module "elasticache" {
 
   node_type = var.redis_node_type
 }
+
+# CDN module for CloudFront distribution
+
+module "cloudfront" {
+  source = "./modules/cloudfront"
+
+  providers = { aws = aws.us_east_1 }
+
+  app_name    = var.app_name
+  environment = var.environment
+
+  alb_dns_name  = module.alb.dns_name
+  domain_name   = var.domain_name
+  acm_cert_arn  = module.acm.certificate_arn
+}
