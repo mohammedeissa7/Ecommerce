@@ -194,3 +194,30 @@ module "cloudfront" {
   domain_name   = var.domain_name
   acm_cert_arn  = module.acm.certificate_arn
 }
+
+# Security 
+
+module "waf" {
+  source = "./modules/waf"
+
+  providers = { aws = aws.us_east_1 }
+
+  app_name                = var.app_name
+  cloudfront_distribution_arn = module.cloudfront.distribution_arn
+}
+
+# SecretManger 
+resource "aws_secretsmanager_secret" "jwt" {
+  name        = "${var.app_name}/${var.environment}/jwt-secrets"
+  description = "ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET for JWT signing"
+}
+
+resource "aws_secretsmanager_secret" "stripe" {
+  name        = "${var.app_name}/${var.environment}/stripe-key"
+  description = "STRIPE_SECRET_KEY for Stripe Node SDK"
+}
+
+resource "aws_secretsmanager_secret" "cloudinary" {
+  name        = "${var.app_name}/${var.environment}/cloudinary-creds"
+  description = "Cloudinary cloud_name, api_key, api_secret"
+}
