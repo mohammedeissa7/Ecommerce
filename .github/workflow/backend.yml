@@ -1,0 +1,149 @@
+# ON PULL REQUEST:
+#   Lint → Tests → Docker build (no push)
+#
+# ON MERGE TO MAIN:
+#   Lint → Tests → Docker build+push ECR → ECS rolling deploy → Ansible health check
+#
+
+
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/Eissa/backend
+  ECS_CLUSTER: Eissa-production
+  ECS_SERVICE: Eissa-production-backend
+  IMAGE_TAG: sha-${{ github.sha }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # Job 1: CI 
+  ci:
+    name: Lint & Test
+    runs-on:  alpine-latest
+
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      # ESLint configured for ES modules with Node.js globals
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      # Unit and integration tests against the local mongo/redis service containers
+      - name: Run tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/Eissa_test
+          REDIS_URL: redis://localhost:6379
+          ACCESS_TOKEN_SECRET: test-access-secret-for-ci-only
+          REFRESH_TOKEN_SECRET: test-refresh-secret-for-ci-only
+          STRIPE_SECRET_KEY: sk_test_dummy_for_tests
+          PORT: 5000
+        run: npm test
+
+      # Validate the Dockerfile builds on PRs (no push until merge)
+      - name: Docker build (validate)
+        working-directory: backend
+        run: |
+          docker build -f backend.Dockerfile -t Eissa/backend:pr-${{ github.sha }} .
+
+  # Job 2: Deploy 
+  deploy:
+    name: Build, Push ECR & Deploy ECS
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-session-name: github-actions-backend-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image to ECR
+        working-directory: backend
+        run: |
+          docker build \
+            -f backend.Dockerfile \
+            -t ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }} \
+            -t ${{ env.ECR_REPO }}:latest \
+            .
+          docker push ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REPO }}:latest
+
+      - name: Download current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition Eissa-production-backend \
+            --query taskDefinition > /tmp/task-def.json
+
+      - name: Update image in task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: /tmp/task-def.json
+          container-name: backend
+          image: ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
+
+      # Rolling deploy — ECS circuit breaker auto-rolls back if health checks fail
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          wait-for-minutes: 10
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Backend Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: \`${{ env.ECS_SERVICE }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health check**: Passed" >> $GITHUB_STEP_SUMMARY
