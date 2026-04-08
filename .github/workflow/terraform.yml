@@ -1,0 +1,137 @@
+# ON PULL REQUEST:
+#   fmt check → validate → plan
+#   The plan output is posted as a PR comment so reviewers can see exactly
+#   what infrastructure changes will be made before approving the PR.
+
+# ON MERGE TO MAIN:
+#   fmt check → validate → plan → apply
+#   Auto-apply keeps infrastructure in sync with the main branch automatically.
+name: Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/terraform.yml'
+
+env:
+  TF_VERSION: '1.7.5'
+  TF_WORKING_DIR: infrastructure
+  TF_VAR_FILE: environments/production/terraform.tfvars
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+permissions:
+  id-token: write       # OIDC
+  contents: read
+  pull-requests: write  
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform ${{ env.TF_VERSION }}
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-session-name: github-actions-terraform-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Format check 
+      # `terraform fmt -check` fails if any .tf file is not formatted correctly.
+      # This enforces consistent code style — run `terraform fmt` locally to fix.
+      - name: Terraform format check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+        id: fmt
+
+      #  Init
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -reconfigure
+        id: init
+
+      #  Validate 
+     
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate -no-color
+        id: validate
+
+      # Plan 
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform plan \
+            -var-file=${{ env.TF_VAR_FILE }} \
+            -no-color \
+            -out=tfplan \
+            2>&1 | tee /tmp/plan-output.txt
+        id: plan
+        continue-on-error: true  
+
+      # Post plan output as a PR comment so reviewers see changes inline
+      - name: Post plan to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('/tmp/plan-output.txt', 'utf8');
+            const truncated = plan.length > 65000 ? plan.substring(0, 65000) + '\n\n... (truncated)' : plan;
+            const body = `## Terraform Plan
+
+            **Format**: ${{ steps.fmt.outcome }}
+            **Init**: ${{ steps.init.outcome }}
+            **Validate**: ${{ steps.validate.outcome }}
+            **Plan**: ${{ steps.plan.outcome }}
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`hcl
+            ${truncated}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # Fail the job if plan failed (we continued-on-error above just to post the comment)
+      - name: Check plan status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      #  Apply 
+      # - name: Terraform apply
+      #   working-directory: ${{ env.TF_WORKING_DIR }}
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   run: terraform apply -auto-approve tfplan
+
+      # - name: Apply summary
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   run: |
+      #     echo "## Terraform Apply Complete" >> $GITHUB_STEP_SUMMARY
+      #     echo "Infrastructure updated on \`$(date -u '+%Y-%m-%d %H:%M:%S UTC')\`" >> $GITHUB_STEP_SUMMARY
