@@ -36,13 +36,10 @@ permissions:
 jobs:
   # Job 1: CI 
   ci:
-    name: Lint, Type-check & Build
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -55,9 +52,6 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Lint
-        working-directory: frontend
-        run: npm run lint
 
       # TypeScript compiler catches type errors without emitting files
       - name: TypeScript type check

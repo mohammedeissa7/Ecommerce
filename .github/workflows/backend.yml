@@ -13,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
+      - 'ansible/**'
       - '.github/workflows/backend.yml'
   pull_request:
     branches: [main]
@@ -140,6 +141,23 @@ jobs:
           wait-for-service-stability: true
           wait-for-minutes: 10
 
+      # Setup Python and Ansible for post-deploy health check
+      - name: Setup Python for Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Install Ansible and AWS SDK for Python (boto3) to allow Ansible start playbook       - name: Install Ansible
+        run: pip install ansible boto3 botocore
+
+      - name: Run Ansible health-check playbook
+        working-directory: ansible
+        env:
+          APP_URL: https://maisonparis.com
+          ANSIBLE_HOST_KEY_CHECKING: 'False'
+        run: |
+          ansible-playbook playbooks/health-check.yml \
+            -i inventory/production.yml \
+            -e "app_url=$APP_URL image_tag=${{ env.IMAGE_TAG }}"
       - name: Deployment summary
         if: always()
         run: |
