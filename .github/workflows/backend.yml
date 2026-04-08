@@ -36,14 +36,14 @@ jobs:
   # Job 1: CI 
   ci:
     name: Lint & Test
-    runs-on:  alpine-latest
+    runs-on:  ubuntu-latest
 
     services:
       mongo:
         image: mongo:7
         ports: ['27017:27017']
       redis:
-        image: redis:7-alpine
+        image: redis:7-ubuntu
         ports: ['6379:6379']
 
     steps:
