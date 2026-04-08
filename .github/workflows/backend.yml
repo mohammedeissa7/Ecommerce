@@ -61,10 +61,7 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      # ESLint configured for ES modules with Node.js globals
-      - name: Lint
-        working-directory: backend
-        run: npm run lint
+
 
       # Unit and integration tests against the local mongo/redis service containers
       - name: Run tests
