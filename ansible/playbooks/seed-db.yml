@@ -1,0 +1,133 @@
+---
+
+# This is safer than shelling into a running container because:
+#   1. The task gets its own isolated environment
+#   2. Secrets are injected from Secrets Manager just like normal tasks
+#   3. No interference with running production tasks
+#   4. Full CloudWatch logs of the seed output
+#
+
+- name: Seed the database via ECS run-task
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    seed_mode: ""          
+    seed_timeout: 300      
+    log_wait: 10          
+
+  tasks:
+   
+    - name: Get backend task definition ARN
+      ansible.builtin.command:
+        cmd: >
+          aws ecs describe-services
+          --cluster {{ ecs_cluster }}
+          --services {{ backend_service }}
+          --region {{ aws_region }}
+          --query 'services[0].taskDefinition'
+          --output text
+      register: task_def_arn
+      changed_when: false
+
+    - name: Show task definition being used
+      ansible.builtin.debug:
+        msg: "Using task definition: {{ task_def_arn.stdout }}"
+
+
+    - name: Get backend service network configuration
+      ansible.builtin.command:
+        cmd: >
+          aws ecs describe-services
+          --cluster {{ ecs_cluster }}
+          --services {{ backend_service }}
+          --region {{ aws_region }}
+          --query 'services[0].networkConfiguration.awsvpcConfiguration'
+          --output json
+      register: network_config_raw
+      changed_when: false
+
+    - name: Parse network configuration
+      ansible.builtin.set_fact:
+        network_config: "{{ network_config_raw.stdout | from_json }}"
+
+
+    - name: Run seed task on ECS Fargate
+      ansible.builtin.command:
+        cmd: >
+          aws ecs run-task
+          --cluster {{ ecs_cluster }}
+          --task-definition {{ task_def_arn.stdout }}
+          --launch-type FARGATE
+          --network-configuration awsvpcConfiguration="{subnets={{ network_config.subnets | join(',') }},securityGroups={{ network_config.securityGroups | join(',') }},assignPublicIp={{ network_config.assignPublicIp }}}"
+          --overrides '{"containerOverrides":[{"name":"backend","command":["node","seed.js","{{ seed_mode }}"]}]}'
+          --region {{ aws_region }}
+          --query 'tasks[0].taskArn'
+          --output text
+      register: seed_task_arn
+      changed_when: true
+
+    - name: Show seed task ARN
+      ansible.builtin.debug:
+        msg: "Seed task started: {{ seed_task_arn.stdout }}"
+
+
+    - name: Wait for seed task to complete
+      ansible.builtin.command:
+        cmd: >
+          aws ecs wait tasks-stopped
+          --cluster {{ ecs_cluster }}
+          --tasks {{ seed_task_arn.stdout }}
+          --region {{ aws_region }}
+      changed_when: false
+      timeout: "{{ seed_timeout }}"
+
+   
+    - name: Get seed task exit code
+      ansible.builtin.command:
+        cmd: >
+          aws ecs describe-tasks
+          --cluster {{ ecs_cluster }}
+          --tasks {{ seed_task_arn.stdout }}
+          --region {{ aws_region }}
+          --query 'tasks[0].containers[0].exitCode'
+          --output text
+      register: exit_code
+      changed_when: false
+
+    - name: Fail if seed task exited with error
+      ansible.builtin.fail:
+        msg: "Seed task failed with exit code {{ exit_code.stdout }}. Check CloudWatch logs for details."
+      when: exit_code.stdout != "0"
+
+   
+    - name: Wait briefly for logs to flush to CloudWatch
+      ansible.builtin.pause:
+        seconds: "{{ log_wait }}"
+
+    - name: Parse task ID from ARN
+      ansible.builtin.set_fact:
+        task_id: "{{ seed_task_arn.stdout.split('/')[-1] }}"
+
+    - name: Fetch seed logs from CloudWatch
+      ansible.builtin.command:
+        cmd: >
+          aws logs get-log-events
+          --log-group-name /ecs/{{ app_name }}-{{ environment }}/backend
+          --log-stream-name backend/backend/{{ task_id }}
+          --region {{ aws_region }}
+          --query 'events[*].message'
+          --output text
+      register: seed_logs
+      changed_when: false
+      ignore_errors: true  
+
+    - name: Print seed logs
+      ansible.builtin.debug:
+        msg: "{{ seed_logs.stdout_lines }}"
+      when: seed_logs.stdout | length > 0
+
+    - name: Seed complete
+      ansible.builtin.debug:
+        msg: "Database seed completed successfully (exit code {{ exit_code.stdout }})"

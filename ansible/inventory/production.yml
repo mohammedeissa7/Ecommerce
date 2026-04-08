@@ -1,0 +1,15 @@
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+  vars:
+    environment: production
+    app_name: Eissa
+    aws_region: us-east-1
+    ecs_cluster: Eissa-production
+    frontend_service: Eissa-production-frontend
+    backend_service: Eissa-production-backend
+    app_url: "https://Eissaparis.com"
+    api_url: "https://Eissaparis.com/api"

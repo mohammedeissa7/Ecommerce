@@ -1,0 +1,27 @@
+---
+# Runs after every ECS deploy (called from backend.yml GitHub Actions workflow).
+# Checks that all critical endpoints respond correctly before declaring the
+# deploy successful. If any check fails, the pipeline fails and GitHub Actions
+# can trigger an ECS rollback.
+
+- name: Post-deploy health check
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    image_tag: "unknown"
+    check_timeout: 10 # seconds per HTTP request
+    initial_wait: 30 # seconds to wait before first check (let tasks warm up)
+
+  roles:
+    - role: smoke-test
+
+  post_tasks:
+    - name: Print health check summary
+      ansible.builtin.debug:
+        msg: |
+          All health checks passed
+          Image tag : {{ image_tag }}
+          App URL   : {{ app_url }}
+          Checked   : {{ smoke_test_endpoints | length }} endpoints

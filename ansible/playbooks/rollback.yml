@@ -1,0 +1,76 @@
+---
+# Reverts an ECS service to the previous task definition revision.
+# ECS keeps the last 10 task definition revisions — this uses the N-1 revision.
+# The deployment_circuit_breaker in Terraform handles auto-rollback during normal
+# CI deploys, but this playbook is for manual rollback when needed  (e.g. if
+# a problem is discovered hours after deploy, after circuit breaker window passes).
+
+
+- name: Rollback ECS service to previous revision
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    target_revision: ""   # empty = auto-detect previous revision
+
+  tasks:
+    - name: Get current active task definition
+      ansible.builtin.command:
+        cmd: >
+          aws ecs describe-services
+          --cluster {{ ecs_cluster }}
+          --services {{ app_name }}-{{ environment }}-{{ service }}
+          --region {{ aws_region }}
+          --query 'services[0].taskDefinition'
+          --output text
+      register: current_task_def
+      changed_when: false
+
+    - name: Parse current revision number
+      ansible.builtin.set_fact:
+        current_revision: "{{ current_task_def.stdout.split(':')[-1] | int }}"
+        task_family: "{{ current_task_def.stdout.split(':')[0] }}"
+
+    - name: Calculate previous revision
+      ansible.builtin.set_fact:
+        rollback_revision: "{{ target_revision if target_revision else (current_revision | int - 1) }}"
+
+    - name: Validate rollback target is valid
+      ansible.builtin.fail:
+        msg: "Cannot rollback: revision {{ rollback_revision }} would be 0 or negative. No previous revision exists."
+      when: rollback_revision | int < 1
+
+    - name: Confirm rollback action
+      ansible.builtin.debug:
+        msg: |
+          ROLLBACK
+          Service  : {{ app_name }}-{{ environment }}-{{ service }}
+          Current  : revision {{ current_revision }}
+          Rollback : revision {{ rollback_revision }}
+
+    - name: Update ECS service to previous task definition
+      ansible.builtin.command:
+        cmd: >
+          aws ecs update-service
+          --cluster {{ ecs_cluster }}
+          --service {{ app_name }}-{{ environment }}-{{ service }}
+          --task-definition {{ task_family }}:{{ rollback_revision }}
+          --force-new-deployment
+          --region {{ aws_region }}
+      register: rollback_result
+      changed_when: true
+
+    - name: Wait for rollback to stabilise
+      ansible.builtin.command:
+        cmd: >
+          aws ecs wait services-stable
+          --cluster {{ ecs_cluster }}
+          --services {{ app_name }}-{{ environment }}-{{ service }}
+          --region {{ aws_region }}
+      changed_when: false
+      timeout: 600
+
+    - name: Rollback complete
+      ansible.builtin.debug:
+        msg: "Rollback complete — service is now running revision {{ rollback_revision }}"
