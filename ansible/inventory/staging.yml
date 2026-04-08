@@ -1,0 +1,16 @@
+# ansible/inventory/staging.yml
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+  vars:
+    environment: staging
+    app_name: Eissa
+    aws_region: us-east-1
+    ecs_cluster: Eissa-staging
+    frontend_service: Eissa-staging-frontend
+    backend_service: Eissa-staging-backend
+    app_url: "https://staging.Eissaparis.com"
+    api_url: "https://staging.Eissaparis.com/api"

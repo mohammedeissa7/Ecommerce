@@ -1,0 +1,17 @@
+---
+
+# Default variables for the ecs-deploy role.
+# Override any of these in your playbook vars or group_vars.
+
+service: backend
+
+# Image tag to deploy — usually set by CI via -e "image_tag=sha-abc1234"
+image_tag: latest
+
+deploy_timeout: 600
+
+deploy_initial_wait: 15
+
+deploy_stability_retries: 40
+
+deploy_stability_delay: 15

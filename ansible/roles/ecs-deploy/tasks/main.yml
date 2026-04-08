@@ -1,0 +1,141 @@
+---
+
+- name: Set service name
+  ansible.builtin.set_fact:
+    ecs_service_name: "{{ app_name }}-{{ environment }}-{{ service }}"
+    ecr_base: "{{ lookup('env', 'AWS_ACCOUNT_ID') }}.dkr.ecr.{{ aws_region }}.amazonaws.com/{{ app_name }}"
+
+- name: Get current task definition from ECS service
+  ansible.builtin.command:
+    cmd: >
+      aws ecs describe-services
+      --cluster {{ ecs_cluster }}
+      --services {{ ecs_service_name }}
+      --region {{ aws_region }}
+      --query 'services[0].taskDefinition'
+      --output text
+  register: current_task_def_arn
+  changed_when: false
+
+- name: Download current task definition JSON
+  ansible.builtin.command:
+    cmd: >
+      aws ecs describe-task-definition
+      --task-definition {{ current_task_def_arn.stdout }}
+      --region {{ aws_region }}
+      --query 'taskDefinition'
+      --output json
+  register: task_def_json_raw
+  changed_when: false
+
+- name: Parse task definition
+  ansible.builtin.set_fact:
+    task_def: "{{ task_def_json_raw.stdout | from_json }}"
+
+
+- name: Set new image URI
+  ansible.builtin.set_fact:
+    new_image: "{{ ecr_base }}/{{ service }}:{{ image_tag }}"
+
+- name: Show deploy target
+  ansible.builtin.debug:
+    msg: |
+      Deploying to: {{ ecs_service_name }}
+      New image   : {{ new_image }}
+
+- name: Build updated container definitions
+  ansible.builtin.set_fact:
+    updated_container_defs: >-
+      {{
+        task_def.containerDefinitions | map(
+          'combine',
+          {'image': new_image} if item.name == service else {}
+        ) | list
+      }}
+  loop: "{{ task_def.containerDefinitions }}"
+
+- name: Register new task definition revision
+  ansible.builtin.command:
+    cmd: >
+      aws ecs register-task-definition
+      --family {{ task_def.family }}
+      --task-role-arn {{ task_def.taskRoleArn }}
+      --execution-role-arn {{ task_def.executionRoleArn }}
+      --network-mode {{ task_def.networkMode }}
+      --cpu {{ task_def.cpu }}
+      --memory {{ task_def.memory }}
+      --requires-compatibilities {{ task_def.requiresCompatibilities | join(' ') }}
+      --container-definitions '{{ task_def.containerDefinitions | to_json }}'
+      --region {{ aws_region }}
+      --query 'taskDefinition.taskDefinitionArn'
+      --output text
+  register: new_task_def_arn
+  changed_when: true
+
+- name: Show new task definition ARN
+  ansible.builtin.debug:
+    msg: "New task definition: {{ new_task_def_arn.stdout }}"
+
+- name: Update ECS service to new task definition
+  ansible.builtin.command:
+    cmd: >
+      aws ecs update-service
+      --cluster {{ ecs_cluster }}
+      --service {{ ecs_service_name }}
+      --task-definition {{ new_task_def_arn.stdout }}
+      --force-new-deployment
+      --region {{ aws_region }}
+      --query 'service.deployments[0].status'
+      --output text
+  register: deploy_status
+  changed_when: true
+
+- name: Initial deploy status
+  ansible.builtin.debug:
+    msg: "Deploy triggered — status: {{ deploy_status.stdout }}"
+
+- name: Wait for ECS service to stabilise
+  ansible.builtin.command:
+    cmd: >
+      aws ecs wait services-stable
+      --cluster {{ ecs_cluster }}
+      --services {{ ecs_service_name }}
+      --region {{ aws_region }}
+  changed_when: false
+  timeout: "{{ deploy_timeout }}"
+
+- name: Get running task ARNs
+  ansible.builtin.command:
+    cmd: >
+      aws ecs list-tasks
+      --cluster {{ ecs_cluster }}
+      --service-name {{ ecs_service_name }}
+      --desired-status RUNNING
+      --region {{ aws_region }}
+      --query 'taskArns'
+      --output json
+  register: running_tasks_raw
+  changed_when: false
+
+- name: Describe running tasks to verify image
+  ansible.builtin.command:
+    cmd: >
+      aws ecs describe-tasks
+      --cluster {{ ecs_cluster }}
+      --tasks {{ (running_tasks_raw.stdout | from_json) | join(' ') }}
+      --region {{ aws_region }}
+      --query 'tasks[*].containers[0].image'
+      --output json
+  register: running_images_raw
+  changed_when: false
+  when: (running_tasks_raw.stdout | from_json) | length > 0
+
+- name: Verify all running tasks use new image
+  ansible.builtin.assert:
+    that:
+      - running_images_raw.stdout | from_json | select('equalto', new_image) | list | length == (running_tasks_raw.stdout | from_json) | length
+    fail_msg: >
+      Image mismatch! Expected {{ new_image }} but some tasks are running a different image.
+      Running images: {{ running_images_raw.stdout }}
+    success_msg: "All {{ (running_tasks_raw.stdout | from_json) | length }} tasks running {{ new_image }}"
+  when: running_images_raw is defined

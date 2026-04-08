@@ -1,0 +1,22 @@
+---
+
+- name: Deploy ECS service with new image
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    image_tag: "latest"
+    deploy_timeout: 600   # 10 minutes maximum wait time
+
+  roles:
+    - role: ecs-deploy
+
+  post_tasks:
+    - name: Print deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ✅ Deploy complete
+          Service  : {{ ecs_cluster }}/{{ service }}-service
+          Image tag: {{ image_tag }}
+          URL      : {{ app_url }}
