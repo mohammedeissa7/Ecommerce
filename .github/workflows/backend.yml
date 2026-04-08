@@ -3,7 +3,7 @@
 #
 # ON MERGE TO MAIN:
 #   Lint → Tests → Docker build+push ECR → ECS rolling deploy → Ansible health check
-#
+
 
 
 name: Backend CI/CD
@@ -146,13 +146,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # Install Ansible and AWS SDK for Python (boto3) to allow Ansible start playbook       - name: Install Ansible
+      # Install Ansible and AWS SDK for Python (boto3) to allow Ansible start playbook       
+      - name: Install Ansible
         run: pip install ansible boto3 botocore
 
       - name: Run Ansible health-check playbook
         working-directory: ansible
         env:
-          APP_URL: https://maisonparis.com
+          APP_URL: https://Eissaparis.com
           ANSIBLE_HOST_KEY_CHECKING: 'False'
         run: |
           ansible-playbook playbooks/health-check.yml \
