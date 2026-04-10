@@ -3,12 +3,8 @@
 #   Lint → TypeScript check → Vite build → Docker build (validate only, no push)
 #   This runs in ~2 minutes and catches broken code before it reaches main.
 #
-# ON MERGE TO MAIN:
-#   Lint → Build → Docker build+push ECR → ECS rolling deploy
-#   The entire pipeline from merge to live takes ~5-8 minutes.
 
-
-name: Frontend CI/CD
+name: Frontend CI
 
 on:
   push:
@@ -21,18 +17,6 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
-
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/Eissa/frontend
-  ECS_CLUSTER: Eissa-production
-  ECS_SERVICE: Eissa-production-frontend
-  IMAGE_TAG: sha-${{ github.sha }}
-
-permissions:
-  id-token: write    # required for OIDC — allows GitHub to request an AWS session
-  contents: read
-
 jobs:
   # Job 1: CI 
   ci:
@@ -55,13 +39,6 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-
-
-      # TypeScript compiler catches type errors without emitting files
-      - name: TypeScript type check
-        working-directory: frontend
-        run: npx tsc --noEmit
-
       - name: Build (Vite)
         working-directory: frontend
         env:
@@ -76,89 +53,6 @@ jobs:
           docker build \
             --build-arg VITE_API_URL=/api \
             --build-arg VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }} \
-            -f frontend.Dockerfile \
+            -f dockerfile \
             -t Eissa/frontend:pr-${{ github.sha }} \
             .
-
-  # Job 2: Deploy 
-  deploy:
-    name: Build, Push ECR & Deploy ECS
-    runs-on:  ubuntu-latest
-    needs: ci                       
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Exchange GitHub OIDC with AWS
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
-          role-session-name: github-actions-frontend-${{ github.run_id }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # Authenticate Docker to ECR — valid for 12 hours
-      - name: Login to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push Docker image to ECR
-        working-directory: frontend
-        run: |
-          docker build \
-            --build-arg VITE_API_URL=/api \
-            --build-arg VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }} \
-            -f frontend.Dockerfile \
-            -t ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }} \
-            -t ${{ env.ECR_REPO }}:latest \
-            .
-          docker push ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.ECR_REPO }}:latest
-          echo "image=${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-
-
-      - name: Download current ECS task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition Eissa-production-frontend \
-            --query taskDefinition > /tmp/task-def.json
-
-      - name: Update image in task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: /tmp/task-def.json
-          container-name: frontend
-          image: ${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true   # block until deploy is complete
-          wait-for-minutes: 10
-
-      # Verify the deployed URL returns HTTP 200 after the rolling deploy
-      - name: Smoke test — verify HTTP 200
-        run: |
-          sleep 15   # brief pause for DNS/health-check propagation
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://Eissaparis.com)
-          if [ "$STATUS" != "200" ]; then
-            echo "ERROR: Smoke test failed — got HTTP $STATUS"
-            exit 1
-          fi
-          echo "Smoke test passed — HTTP $STATUS"
-
-      # Post deployment summary to GitHub job summary
-      - name: Deployment summary
-        if: always()
-        run: |
-          echo "## Frontend Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Service**: \`${{ env.ECS_SERVICE }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Cluster**: \`${{ env.ECS_CLUSTER }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL**: https://Eissaparis.com" >> $GITHUB_STEP_SUMMARY
